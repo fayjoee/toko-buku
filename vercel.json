@@ -1,0 +1,14 @@
+{
+  "builds": [
+    {
+      "src": "tokobuku/wsgi.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "tokobuku/wsgi.py"
+    }
+  ]
+}
