@@ -1,0 +1,176 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Input Penjualan Langsung - TokoBuku Antigravity{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10">
+        <div class="mb-4">
+            <a href="{% url 'book_list' %}" class="btn btn-link text-decoration-none text-muted p-0">
+                <i class="bi bi-arrow-left me-1"></i> Kembali ke Katalog
+            </a>
+        </div>
+
+        <div class="card card-glass border-0 shadow-sm p-4 animate-fade-in">
+            <div class="d-flex align-items-center mb-4">
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px; background: var(--primary-gradient);">
+                    <i class="bi bi-cart-plus-fill fs-4"></i>
+                </div>
+                <div>
+                    <h2 class="gradient-text fw-bold mb-0">Input Transaksi Penjualan</h2>
+                    <p class="text-muted small mb-0">Masukkan transaksi penjualan langsung baru ke database. Sistem akan mengurangi stok buku otomatis.</p>
+                </div>
+            </div>
+
+            <!-- Django Form -->
+            <form method="POST" class="needs-validation" novalidate>
+                {% csrf_token %}
+                
+                {% if form.errors %}
+                    <div class="alert alert-danger shadow-sm mb-4">
+                        <h6 class="fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>Terjadi kesalahan pengisian form:</h6>
+                        <ul class="mb-0 small">
+                            {% for field, errors in form.errors.items %}
+                                <li><strong>{{ field|capfirst }}:</strong> {{ errors|join:", " }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                <!-- Form Row: Staf Penjual -->
+                <div class="mb-3">
+                    <label for="{{ form.staff.id_for_label }}" class="form-label fw-bold">Staf Penjual</label>
+                    {{ form.staff }}
+                    <div class="form-text text-muted">Pilih staf aktif yang memproses transaksi penjualan ini.</div>
+                </div>
+
+                <!-- Form Row: Buku -->
+                <div class="mb-3">
+                    <label for="{{ form.book.id_for_label }}" class="form-label fw-bold">Pilih Buku</label>
+                    {{ form.book }}
+                    <div id="stock-info-container" class="mt-2 d-none">
+                        <span class="badge bg-secondary-subtle text-dark border px-2 py-1" id="book-stock-badge">Stok Tersedia: 0 Pcs</span>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <!-- Form Row: Jumlah (Quantity) -->
+                    <div class="col-md-6">
+                        <label for="{{ form.quantity.id_for_label }}" class="form-label fw-bold">Jumlah (Quantity)</label>
+                        {{ form.quantity }}
+                    </div>
+
+                    <!-- Form Row: Harga Satuan (Unit Price) -->
+                    <div class="col-md-6">
+                        <label for="{{ form.unit_price.id_for_label }}" class="form-label fw-bold">Harga Satuan (Unit Price)</label>
+                        {{ form.unit_price }}
+                    </div>
+                </div>
+
+                <!-- Live Auto-Calculation Box -->
+                <div class="p-4 rounded-4 bg-light mb-4 border d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-muted d-block small">Estimasi Total Pendapatan</span>
+                        <span class="fs-4 fw-bold text-dark" id="live-total-preview">Rp 0</span>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-indigo-100 text-indigo-800 border px-3 py-2 rounded-pill" style="color: #4f46e5; background-color: #e0e7ff;">
+                            Kalkulasi Otomatis (Quantity * Unit Price)
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-gradient-primary rounded-pill px-4 py-2 w-100 fw-bold">
+                        <i class="bi bi-check-circle-fill me-2"></i>Simpan Transaksi Penjualan
+                    </button>
+                    <a href="{% url 'book_list' %}" class="btn btn-outline-secondary rounded-pill px-4 py-2">
+                        Batal
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const bookSelect = document.getElementById("id_book");
+        const quantityInput = document.getElementById("id_quantity");
+        const priceInput = document.getElementById("id_unit_price");
+        const liveTotalSpan = document.getElementById("live-total-preview");
+        
+        const stockContainer = document.getElementById("stock-info-container");
+        const stockBadge = document.getElementById("book-stock-badge");
+
+        // Format angka ke rupiah
+        function formatRupiah(value) {
+            return "Rp " + parseFloat(value).toLocaleString('id-ID');
+        }
+
+        // Hitung total secara real-time
+        function calculateTotal() {
+            const qty = parseFloat(quantityInput.value) || 0;
+            const price = parseFloat(priceInput.value) || 0;
+            const total = qty * price;
+            liveTotalSpan.textContent = formatRupiah(total);
+        }
+
+        // Ambil harga buku via API saat buku dipilih
+        bookSelect.addEventListener("change", function () {
+            const isbn = bookSelect.value;
+            if (!isbn) {
+                priceInput.value = "";
+                stockContainer.classList.add("d-none");
+                calculateTotal();
+                return;
+            }
+
+            // Tampilkan loading status
+            stockBadge.textContent = "Mengambil data buku...";
+            stockContainer.classList.remove("d-none");
+
+            fetch(`/api/book-price/${isbn}/`)
+                .then(response => {
+                    if (!response.ok) throw new Error("Gagal memuat harga");
+                    return response.json();
+                })
+                .then(data => {
+                    // Isi harga satuan secara otomatis
+                    priceInput.value = data.selling_price;
+                    // Update info stok
+                    stockBadge.textContent = `Stok Tersedia: ${data.stock_quantity} Pcs`;
+                    
+                    // Alert warna merah jika stok kritis
+                    if (data.stock_quantity <= 0) {
+                        stockBadge.className = "badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1";
+                    } else {
+                        stockBadge.className = "badge bg-secondary-subtle text-dark border px-2 py-1";
+                    }
+                    
+                    calculateTotal();
+                })
+                .catch(error => {
+                    console.error("Error fetching price:", error);
+                    stockBadge.textContent = "Gagal memuat data stok/harga";
+                    stockBadge.className = "badge bg-warning-subtle text-warning border px-2 py-1";
+                });
+        });
+
+        // Trigger hitung total saat quantity atau price diinput manual
+        quantityInput.addEventListener("input", calculateTotal);
+        priceInput.addEventListener("input", calculateTotal);
+
+        // Jika form terisi ulang setelah validation error atau parameter GET
+        const urlParams = new URLSearchParams(window.location.search);
+        const getBook = urlParams.get('book');
+        if (getBook) {
+            bookSelect.value = getBook;
+            bookSelect.dispatchEvent(new Event('change'));
+        }
+    });
+</script>
+{% endblock %}

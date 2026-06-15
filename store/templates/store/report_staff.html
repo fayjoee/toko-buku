@@ -1,0 +1,116 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Laporan Staf & Manajemen - TokoBuku Antigravity{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-5 animate-fade-in">
+    <div class="col-md-8">
+        <h1 class="gradient-text display-5 mb-1">Laporan Staf & Manajemen</h1>
+        <p class="text-muted">Kelola tim kerja Anda, tinjau jam kerja mingguan staf, dan pantau pembagian departemen manajer.</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <span class="badge bg-primary px-3 py-2 rounded-pill fs-6" style="background: var(--primary-gradient);">
+            Total: {{ staff_list.count }} Staf & {{ manager_list.count }} Manajer
+        </span>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Active Staff Table -->
+    <div class="col-lg-7">
+        <div class="card card-glass border-0 shadow-sm p-4 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom">
+                <h4 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-people-fill text-primary me-2"></i> Daftar Staf Aktif
+                </h4>
+                <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill">Staff Members</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr class="table-light">
+                            <th scope="col">Nama Staf</th>
+                            <th scope="col">Peran/Role</th>
+                            <th scope="col" class="text-center">Jam Kerja/Minggu</th>
+                            <th scope="col">Sertifikasi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for staff in staff_list %}
+                            <tr>
+                                <td>
+                                    <div class="fw-bold text-dark">{{ staff.person.fname }} {{ staff.person.lname }}</div>
+                                    <small class="text-muted"><i class="bi bi-envelope me-1"></i>{{ staff.person.email }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary-subtle text-dark border px-2 py-1">{{ staff.role }}</span>
+                                </td>
+                                <td class="text-center fw-bold text-indigo-600 text-primary">{{ staff.weekly_hours|floatformat:1 }} jam</td>
+                                <td>
+                                    {% if staff.certification_status %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                            <i class="bi bi-patch-check-fill me-1"></i> {{ staff.certification_status }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted small">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">Belum ada staf terdaftar di database.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Managers Table -->
+    <div class="col-lg-5">
+        <div class="card card-glass border-0 shadow-sm p-4 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom">
+                <h4 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-shield-lock-fill text-success me-2"></i> Tim Manajemen
+                </h4>
+                <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill">Managers</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr class="table-light">
+                            <th scope="col">Nama Manajer</th>
+                            <th scope="col">Departemen</th>
+                            <th scope="col">Info Kantor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for manager in manager_list %}
+                            <tr>
+                                <td>
+                                    <div class="fw-bold text-dark">{{ manager.person.fname }} {{ manager.person.lname }}</div>
+                                    <div class="small text-muted"><i class="bi bi-award-fill text-warning me-1"></i>Bonus: {{ manager.bonus_level }}</div>
+                                </td>
+                                <td>
+                                    <span class="fw-semibold text-dark">{{ manager.department }}</span>
+                                </td>
+                                <td>
+                                    <div class="small fw-semibold"><i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ manager.office_location }}</div>
+                                    <small class="text-muted">Sejak: {{ manager.hired_date|date:"d M Y" }}</small>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center py-4 text-muted">Belum ada manajer terdaftar di database.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

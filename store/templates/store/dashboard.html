@@ -1,0 +1,167 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Dashboard Katalog - TokoBuku Antigravity{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-5">
+    <div class="col-md-6">
+        <h1 class="gradient-text display-5 mb-1">Katalog Buku</h1>
+        <p class="text-muted">Kelola koleksi, telusuri detail penerbit, dan pantau status inventaris secara instan.</p>
+    </div>
+    <div class="col-md-6 text-md-end">
+        <a href="{% url 'sale_add' %}" class="btn btn-gradient-primary me-2">
+            <i class="bi bi-plus-circle me-1"></i> Penjualan Baru
+        </a>
+        <a href="{% url 'order_add' %}" class="btn btn-gradient-secondary">
+            <i class="bi bi-cart-plus me-1"></i> Order Masuk
+        </a>
+    </div>
+</div>
+
+<!-- Search & Filter Controls -->
+<div class="card card-glass p-4 mb-5 shadow-sm border-0">
+    <form method="GET" action="{% url 'book_list' %}" class="row g-3">
+        <!-- Search Input -->
+        <div class="col-md-5">
+            <label for="searchQuery" class="form-label fw-semibold">Cari Buku</label>
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" name="q" id="searchQuery" class="form-control border-start-0 ps-0" placeholder="Cari judul, ISBN, atau penulis..." value="{{ query }}">
+            </div>
+        </div>
+        <!-- Category Filter -->
+        <div class="col-md-4">
+            <label for="categoryFilter" class="form-label fw-semibold">Kategori</label>
+            <select name="category" id="categoryFilter" class="form-select" onchange="this.form.submit()">
+                <option value="">Semua Kategori</option>
+                {% for category in categories %}
+                    <option value="{{ category.category_id }}" {% if selected_category == category.category_id|stringformat:"i" %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <!-- Action Buttons -->
+        <div class="col-md-3 d-flex align-items-end gap-2">
+            <button type="submit" class="btn btn-dark w-100 py-2 fw-semibold">
+                Filter & Cari
+            </button>
+            {% if query or selected_category %}
+                <a href="{% url 'book_list' %}" class="btn btn-outline-secondary py-2" title="Reset Filter">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Book Grid -->
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% for book in books %}
+        <div class="col">
+            <div class="card card-glass h-100 overflow-hidden d-flex flex-column border-0">
+                <!-- Visual Accent -->
+                <div style="height: 10px; background: {% if book.is_stock_critical %}var(--accent-gradient){% else %}var(--primary-gradient){% endif %};"></div>
+                
+                <div class="card-body p-4 d-flex flex-column">
+                    <!-- Category & Stock Warning Badge -->
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <span class="badge rounded-pill bg-light text-dark border px-3 py-2 fw-normal">
+                            <i class="bi bi-tag-fill text-indigo-500 me-1"></i> {{ book.category.name }}
+                        </span>
+                        
+                        {% if book.is_stock_critical %}
+                            <span class="badge bg-danger animate-pulse px-3 py-2 rounded-pill shadow-sm" style="animation: pulse 2s infinite;" title="Stok berada di bawah Stok Minimum!">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i> Stok Kritis: {{ book.stock_quantity }}
+                            </span>
+                        {% else %}
+                            <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill border border-success-subtle">
+                                Stok: {{ book.stock_quantity }}
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Book Title -->
+                    <h5 class="card-title fw-bold mb-1 text-truncate-2" style="min-height: 48px; line-height: 1.3;">
+                        {{ book.title }}
+                    </h5>
+                    
+                    <p class="text-muted small mb-3">
+                        Oleh <span class="fw-semibold text-dark">{{ book.author.name }}</span>
+                    </p>
+
+                    <!-- Meta specifications -->
+                    <div class="row g-2 mb-4 bg-light p-3 rounded-3 mt-auto">
+                        <div class="col-6">
+                            <small class="text-muted d-block">ISBN</small>
+                            <span class="small fw-semibold text-dark">{{ book.isbn }}</span>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted d-block">Tahun Terbit</small>
+                            <span class="small fw-semibold text-dark">{{ book.publication_year }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Price & Action -->
+                    <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                        <div>
+                            <small class="text-muted d-block">Harga Jual</small>
+                            <span class="fs-5 fw-bold text-indigo-600 text-primary">Rp {{ book.selling_price|floatformat:0 }}</span>
+                        </div>
+                        <a href="{% url 'book_detail' book.isbn %}" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-2 fw-semibold">
+                            Detail <i class="bi bi-arrow-right-short ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <div class="col-12 text-center py-5">
+            <div class="card card-glass p-5 border-0">
+                <i class="bi bi-book text-muted display-1 mb-3"></i>
+                <h3 class="fw-bold">Tidak ada buku ditemukan</h3>
+                <p class="text-muted">Coba bersihkan kata kunci pencarian Anda atau pilih kategori lainnya.</p>
+                <a href="{% url 'book_list' %}" class="btn btn-gradient-primary rounded-pill px-4 mt-2">Tampilkan Semua</a>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination (optional but neat) -->
+{% if is_paginated %}
+    <nav class="d-flex justify-content-center mt-5">
+        <ul class="pagination shadow-sm rounded-pill bg-white px-3 py-1">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link border-0 text-dark" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+            {% endif %}
+            
+            <li class="page-item disabled"><span class="page-link border-0 text-muted">Halaman {{ page_obj.number }} dari {{ page_obj.paginator.num_pages }}</span></li>
+            
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link border-0 text-dark" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+{% endif %}
+
+<style>
+    .text-truncate-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.05); opacity: 0.9; }
+    }
+</style>
+{% endblock %}

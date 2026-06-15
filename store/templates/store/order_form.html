@@ -1,0 +1,264 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Form Pemesanan Buku - TokoBuku Antigravity{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10">
+        <div class="mb-4">
+            <a href="{% url 'book_list' %}" class="btn btn-link text-decoration-none text-muted p-0">
+                <i class="bi bi-arrow-left me-1"></i> Kembali ke Katalog
+            </a>
+        </div>
+
+        <div class="card card-glass border-0 shadow-sm p-4 animate-fade-in">
+            <div class="d-flex align-items-center mb-4">
+                <div class="bg-dark text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                    <i class="bi bi-journal-plus fs-4"></i>
+                </div>
+                <div>
+                    <h2 class="gradient-text fw-bold mb-0">Input Pemesanan Buku</h2>
+                    <p class="text-muted small mb-0">Mencatat pemesanan buku baru dari pelanggan yang diproses oleh staf.</p>
+                </div>
+            </div>
+
+            <!-- Django Form -->
+            <form method="POST" class="needs-validation" novalidate>
+                {% csrf_token %}
+                
+                {% if form.errors %}
+                    <div class="alert alert-danger shadow-sm mb-4">
+                        <h6 class="fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>Terjadi kesalahan pengisian form:</h6>
+                        <ul class="mb-0 small">
+                            {% for field, errors in form.errors.items %}
+                                <li><strong>{{ field|capfirst }}:</strong> {{ errors|join:", " }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                <!-- Form Row: Pelanggan (Customer) - Autocomplete -->
+                <div class="mb-3">
+                    <label for="customer-search-input" class="form-label fw-bold">Pelanggan (Customer)</label>
+                    
+                    <!-- Input yang bisa diketik -->
+                    <div class="position-relative">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                            <input
+                                type="text"
+                                id="customer-search-input"
+                                class="form-control border-start-0 ps-0"
+                                placeholder="Ketik nama atau email pelanggan..."
+                                autocomplete="off"
+                            >
+                        </div>
+                        <!-- Dropdown hasil pencarian -->
+                        <div id="customer-results-dropdown" class="position-absolute w-100 bg-white border rounded-3 shadow-sm d-none" style="top: 100%; left: 0; z-index: 999; max-height: 250px; overflow-y: auto;">
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden select field asli (tetap untuk validasi Django) -->
+                    <div class="d-none">{{ form.customer }}</div>
+                    
+                    <!-- Tag pelanggan yang dipilih -->
+                    <div id="selected-customer-badge" class="mt-2 d-none">
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill fs-6" style="background-color: #e0e7ff; color: #4f46e5;">
+                            <i class="bi bi-person-check-fill me-1"></i>
+                            <span id="selected-customer-name"></span>
+                            <button type="button" class="btn-close btn-close-sm ms-2" id="clear-customer" style="filter: brightness(0.4);"></button>
+                        </span>
+                    </div>
+                    <div class="form-text text-muted">Ketik nama atau email pelanggan yang melakukan pemesanan.</div>
+                </div>
+
+                <!-- Form Row: Staf Pemroses (Processed By Staff) -->
+                <div class="mb-3">
+                    <label for="{{ form.processed_by_staff.id_for_label }}" class="form-label fw-bold">Staf Pemroses</label>
+                    {{ form.processed_by_staff }}
+                    <div class="form-text text-muted">Pilih staf yang bertanggung jawab memproses order ini.</div>
+                </div>
+
+                <!-- Form Row: Buku -->
+                <div class="mb-3">
+                    <label for="{{ form.book.id_for_label }}" class="form-label fw-bold">Pilih Buku</label>
+                    {{ form.book }}
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <!-- Form Row: Jumlah (Quantity) -->
+                    <div class="col-md-6">
+                        <label for="{{ form.quantity.id_for_label }}" class="form-label fw-bold">Jumlah (Quantity)</label>
+                        {{ form.quantity }}
+                    </div>
+
+                    <!-- Form Row: Status Pemesanan -->
+                    <div class="col-md-6">
+                        <label for="{{ form.status.id_for_label }}" class="form-label fw-bold">Status Pemesanan</label>
+                        {{ form.status }}
+                    </div>
+                </div>
+
+                <!-- Live Auto-Calculation Box -->
+                <div class="p-4 rounded-4 bg-light mb-4 border d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-muted d-block small">Estimasi Total Harga Pemesanan</span>
+                        <span class="fs-4 fw-bold text-dark" id="live-total-preview">Rp 0</span>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-indigo-100 text-indigo-800 border px-3 py-2 rounded-pill" style="color: #4f46e5; background-color: #e0e7ff;">
+                            Kalkulasi Otomatis (Quantity * Harga Jual Buku)
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-gradient-primary rounded-pill px-4 py-2 w-100 fw-bold" style="background: var(--primary-gradient);">
+                        <i class="bi bi-check-circle-fill me-2"></i>Simpan Pemesanan
+                    </button>
+                    <a href="{% url 'book_list' %}" class="btn btn-outline-secondary rounded-pill px-4 py-2">
+                        Batal
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        // ─── BAGIAN 1: CUSTOMER AUTOCOMPLETE ─────────────────────────────────
+        const searchInput    = document.getElementById("customer-search-input");
+        const dropdown       = document.getElementById("customer-results-dropdown");
+        const hiddenSelect   = document.getElementById("id_customer");
+        const selectedBadge  = document.getElementById("selected-customer-badge");
+        const selectedName   = document.getElementById("selected-customer-name");
+        const clearBtn       = document.getElementById("clear-customer");
+
+        let debounceTimer = null;
+
+        searchInput.addEventListener("input", function () {
+            const q = searchInput.value.trim();
+
+            // Reset pilihan jika user mengetik ulang
+            hiddenSelect.value = "";
+
+            if (q.length < 2) {
+                dropdown.classList.add("d-none");
+                dropdown.innerHTML = "";
+                return;
+            }
+
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                fetch(`/api/search-person/?q=${encodeURIComponent(q)}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        dropdown.innerHTML = "";
+
+                        if (data.results.length === 0) {
+                            dropdown.innerHTML = `
+                                <div class="px-3 py-3 text-muted small text-center">
+                                    <i class="bi bi-person-x me-1"></i> Tidak ada pelanggan ditemukan.
+                                </div>`;
+                            dropdown.classList.remove("d-none");
+                            return;
+                        }
+
+                        data.results.forEach(person => {
+                            const item = document.createElement("div");
+                            item.className = "px-3 py-2 border-bottom d-flex align-items-center gap-3";
+                            item.style.cursor = "pointer";
+                            item.innerHTML = `
+                                <div class="bg-primary-subtle rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                     style="width:36px;height:36px;background-color:#e0e7ff;">
+                                    <i class="bi bi-person-fill" style="color:#4f46e5;"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-semibold text-dark">${person.name}</div>
+                                    <div class="small text-muted">${person.email}</div>
+                                </div>`;
+
+                            // Hover style
+                            item.addEventListener("mouseenter", () => item.style.backgroundColor = "#f8fafc");
+                            item.addEventListener("mouseleave", () => item.style.backgroundColor = "");
+
+                            // Klik = pilih pelanggan
+                            item.addEventListener("click", () => {
+                                hiddenSelect.value = person.id;
+                                searchInput.value  = "";
+                                selectedName.textContent = `${person.name} (${person.email})`;
+                                selectedBadge.classList.remove("d-none");
+                                dropdown.classList.add("d-none");
+                                dropdown.innerHTML = "";
+                            });
+
+                            dropdown.appendChild(item);
+                        });
+
+                        dropdown.classList.remove("d-none");
+                    })
+                    .catch(() => {
+                        dropdown.innerHTML = `<div class="px-3 py-2 text-danger small">Gagal memuat data pelanggan.</div>`;
+                        dropdown.classList.remove("d-none");
+                    });
+            }, 300); // debounce 300ms
+        });
+
+        // Tombol hapus pilihan pelanggan
+        clearBtn.addEventListener("click", () => {
+            hiddenSelect.value = "";
+            selectedBadge.classList.add("d-none");
+            selectedName.textContent = "";
+            searchInput.value = "";
+            searchInput.focus();
+        });
+
+        // Tutup dropdown saat klik di luar
+        document.addEventListener("click", function (e) {
+            if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add("d-none");
+            }
+        });
+
+
+        // ─── BAGIAN 2: BOOK PRICE AUTOCALCULATION ────────────────────────────
+        const bookSelect     = document.getElementById("id_book");
+        const quantityInput  = document.querySelector("input[name='quantity']");
+        const liveTotalSpan  = document.getElementById("live-total-preview");
+
+        let activeBookPrice = 0;
+
+        function formatRupiah(value) {
+            return "Rp " + parseFloat(value).toLocaleString('id-ID');
+        }
+
+        function calculateTotal() {
+            const qty   = parseFloat(quantityInput.value) || 0;
+            liveTotalSpan.textContent = formatRupiah(qty * activeBookPrice);
+        }
+
+        bookSelect.addEventListener("change", function () {
+            const isbn = bookSelect.value;
+            if (!isbn) { activeBookPrice = 0; calculateTotal(); return; }
+
+            fetch(`/api/book-price/${isbn}/`)
+                .then(r => r.json())
+                .then(data => { activeBookPrice = data.selling_price; calculateTotal(); })
+                .catch(() => { activeBookPrice = 0; calculateTotal(); });
+        });
+
+        quantityInput.addEventListener("input", calculateTotal);
+
+        // Restore buku dari query param (misal dari halaman detail buku)
+        const urlParams = new URLSearchParams(window.location.search);
+        const getBook   = urlParams.get('book');
+        if (getBook) { bookSelect.value = getBook; bookSelect.dispatchEvent(new Event('change')); }
+    });
+</script>
+{% endblock %}
+
